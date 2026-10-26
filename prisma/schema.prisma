@@ -1,0 +1,22 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Credentials live in Cognito; this table holds the app-side profile.
+model User {
+  id           String   @id @default(uuid())
+  cognitoSub   String   @unique @map("cognito_sub")
+  fullName     String   @map("full_name")
+  email        String   @unique // lowercase
+  pendingEmail String?  @map("pending_email") // set until the new email is verified
+  mobile       String   @unique // E.164, e.g. +919876543210
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
