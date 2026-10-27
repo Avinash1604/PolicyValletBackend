@@ -10,7 +10,15 @@ export function setupApp(app: INestApplication) {
 
   // Behind the Caddy proxy: use X-Forwarded-For for rate limiting.
   (app as NestExpressApplication).set('trust proxy', 1);
-  app.use(helmet());
+  // No upgrade-insecure-requests: without apiDomain the API is plain HTTP, and the
+  // directive makes browsers fetch Swagger's assets over HTTPS, which isn't served.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: { upgradeInsecureRequests: null },
+      },
+    }),
+  );
   const origins = config.getOrThrow<string[]>('corsOrigins');
   app.enableCors({ origin: origins.includes('*') ? true : origins });
 
