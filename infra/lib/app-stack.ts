@@ -18,7 +18,10 @@ export interface AppStackProps extends cdk.StackProps {
   /** Receives the $5/month budget alerts. */
   alertEmail?: string;
   corsOrigins: string;
-  /** owner/name of the GitHub repo whose pushes to main may deploy. Enables the CI deploy role. */
+  /**
+   * The GitHub repo whose pushes to main may deploy, as it appears in the OIDC `sub` claim:
+   * `owner@ownerId/name@repoId` (GitHub includes the immutable IDs). Enables the CI deploy role.
+   */
   githubRepo?: string;
 }
 
