@@ -28,4 +28,5 @@ new AppStack(app, 'PolicyValetAppStack', {
   apiDomain: ctx('apiDomain') || undefined,
   alertEmail: ctx('alertEmail') || undefined,
   corsOrigins: ctx('corsOrigins') || '*',
+  githubRepo: ctx('githubRepo') || undefined,
 });

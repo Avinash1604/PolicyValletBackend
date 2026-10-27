@@ -18,6 +18,8 @@ export interface AppStackProps extends cdk.StackProps {
   /** Receives the $5/month budget alerts. */
   alertEmail?: string;
   corsOrigins: string;
+  /** owner/name of the GitHub repo whose pushes to main may deploy. Enables the CI deploy role. */
+  githubRepo?: string;
 }
 
 /**
@@ -198,6 +200,51 @@ export class AppStack extends cdk.Stack {
       maxHealthyPercent: 100,
       circuitBreaker: { rollback: true },
     });
+
+    // ---- CI deploys ----
+    // GitHub Actions assumes this role via OIDC (no stored keys) and can only do what
+    // infra/deploy.sh needs: read stack outputs, push the image, roll the service.
+    if (props.githubRepo) {
+      const github = new iam.OidcProviderNative(this, 'GithubOidc', {
+        url: 'https://token.actions.githubusercontent.com',
+        clientIds: ['sts.amazonaws.com'],
+      });
+      const deployRole = new iam.Role(this, 'GithubDeployRole', {
+        roleName: 'policyvalet-github-deploy',
+        maxSessionDuration: cdk.Duration.hours(1),
+        assumedBy: new iam.WebIdentityPrincipal(
+          github.oidcProviderArn,
+          {
+            StringEquals: {
+              'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
+              'token.actions.githubusercontent.com:sub': `repo:${props.githubRepo}:ref:refs/heads/main`,
+            },
+          },
+        ),
+      });
+      props.repository.grantPullPush(deployRole);
+      deployRole.addToPolicy(
+        new iam.PolicyStatement({
+          actions: ['ecs:UpdateService', 'ecs:DescribeServices'],
+          resources: [service.serviceArn],
+        }),
+      );
+      deployRole.addToPolicy(
+        new iam.PolicyStatement({
+          actions: ['cloudformation:DescribeStacks'],
+          resources: [
+            this.formatArn({
+              service: 'cloudformation',
+              resource: 'stack',
+              resourceName: 'PolicyValet*',
+            }),
+          ],
+        }),
+      );
+      new cdk.CfnOutput(this, 'GithubDeployRoleArn', {
+        value: deployRole.roleArn,
+      });
+    }
 
     // ---- Cost guard ----
     if (props.alertEmail) {
