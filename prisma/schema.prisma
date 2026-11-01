@@ -18,5 +18,91 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  policies     Policy[]
+  sharedWithMe PolicyShare[]
+
   @@map("users")
+}
+
+enum PolicyCategory {
+  HEALTH
+  LIFE
+  MOTOR
+  HOME
+  TRAVEL
+  TERM
+  OTHER
+}
+
+enum PremiumFrequency {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+  SINGLE
+}
+
+enum Relationship {
+  SELF
+  SPOUSE
+  CHILD
+  PARENT
+  SIBLING
+  OTHER
+}
+
+// Saved only when complete: the app sends all wizard steps in one request.
+// "Expired" isn't stored; it's derived from expiryDate.
+model Policy {
+  id               String           @id @default(uuid())
+  ownerId          String           @map("owner_id")
+  owner            User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  category         PolicyCategory
+  provider         String
+  policyNumber     String           @map("policy_number")
+  notes            String?
+  sumInsured       Decimal          @map("sum_insured") @db.Decimal(14, 2)
+  premiumAmount    Decimal          @map("premium_amount") @db.Decimal(12, 2)
+  premiumFrequency PremiumFrequency @map("premium_frequency")
+  startDate        DateTime         @map("start_date") @db.Date
+  expiryDate       DateTime         @map("expiry_date") @db.Date
+  members          PolicyMember[]
+  shares           PolicyShare[]
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  @@index([ownerId])
+  @@index([expiryDate])
+  @@map("policies")
+}
+
+// People covered by the policy; they don't need an account.
+model PolicyMember {
+  id           String       @id @default(uuid())
+  policyId     String       @map("policy_id")
+  policy       Policy       @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  fullName     String       @map("full_name")
+  relationship Relationship
+  dateOfBirth  DateTime?    @map("date_of_birth") @db.Date
+
+  @@index([policyId])
+  @@map("policy_members")
+}
+
+// View-only access for another user. userId is null while an email invite waits for
+// that person to sign up; it's claimed the first time they load their policies.
+model PolicyShare {
+  id          String   @id @default(uuid())
+  policyId    String   @map("policy_id")
+  policy      Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  userId      String?  @map("user_id")
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inviteEmail String?  @map("invite_email") // lowercase
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([policyId, userId])
+  @@unique([policyId, inviteEmail])
+  @@index([userId])
+  @@index([inviteEmail])
+  @@map("policy_shares")
 }

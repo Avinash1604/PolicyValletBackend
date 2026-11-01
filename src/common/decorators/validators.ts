@@ -2,9 +2,13 @@ import { applyDecorators } from '@nestjs/common';
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
+  IsISO8601,
+  IsNumber,
   IsPhoneNumber,
+  IsPositive,
   IsString,
   Matches,
+  Max,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -48,4 +52,38 @@ export const IsFullName = () =>
     IsString(),
     MinLength(2),
     MaxLength(100),
+  );
+
+/** Trimmed, non-empty text up to `max` characters. */
+export const IsText = (max: number) =>
+  applyDecorators(
+    Transform(({ value }: { value: unknown }) =>
+      typeof value === 'string' ? value.trim() : value,
+    ),
+    IsString(),
+    MinLength(1, { message: '$property must not be empty' }),
+    MaxLength(max),
+  );
+
+/** A calendar date as "YYYY-MM-DD". */
+export const IsDateOnly = () =>
+  applyDecorators(
+    Matches(/^\d{4}-\d{2}-\d{2}$/, {
+      message: '$property must be a date in YYYY-MM-DD format',
+    }),
+    IsISO8601(
+      { strict: true },
+      { message: '$property must be a valid calendar date' },
+    ),
+  );
+
+/** A positive money amount with at most 2 decimals, below `max` (the column's limit). */
+export const IsAmount = (max: number) =>
+  applyDecorators(
+    IsNumber(
+      { maxDecimalPlaces: 2, allowNaN: false, allowInfinity: false },
+      { message: '$property must be a number with at most 2 decimal places' },
+    ),
+    IsPositive(),
+    Max(max),
   );

@@ -24,6 +24,16 @@ Swagger docs: `http://localhost:3000/docs`
 | PATCH | `/v1/users/me` | Bearer | fullName / mobile / email (email needs verify-email) |
 | POST | `/v1/users/me/verify-email` | Bearer | code sent to the new email |
 | PATCH | `/v1/users/me/password` | Bearer | currentPassword, newPassword, confirmPassword |
+| POST | `/v1/policies` | Bearer | Create a complete policy (all wizard steps) with `members[]` and optional `shares[]` |
+| GET | `/v1/policies` | Bearer | List; `?scope=all\|owned\|shared&category=HEALTH&state=active\|expired` |
+| GET | `/v1/policies/renewals` | Bearer | Expiring within `?withinDays=` (default 30), soonest first |
+| GET | `/v1/policies/:id` | Bearer | Detail (owner or viewer); `shares` only for the owner |
+| PATCH | `/v1/policies/:id` | Bearer | Owner only; `members` replaces the list |
+| DELETE | `/v1/policies/:id` | Bearer | Owner only |
+| GET / POST | `/v1/policies/:id/shares` | Bearer | Owner: list / share by `email` or `mobile` (view-only) |
+| DELETE | `/v1/policies/:id/shares/:shareId` | Bearer | Owner: stop sharing |
+| DELETE | `/v1/policies/:id/shares/me` | Bearer | Viewer: remove a shared policy from my list |
+| GET | `/v1/dashboard` | Bearer | Home screen counts, total cover, per-category counts |
 | GET | `/health` | – | health check |
 
 Send `Authorization: Bearer <accessToken>` on protected routes. Errors include a `code` the app can switch on:
@@ -35,6 +45,13 @@ Send `Authorization: Bearer <accessToken>` on protected routes. Errors include a
 | `USER_NOT_CONFIRMED` | 403 | Email not verified; show the code screen |
 | `INVALID_CODE`, `EXPIRED_CODE` | 400 | Bad or expired verification/reset code |
 | `TOO_MANY_REQUESTS` | 429 | Rate limited |
+| `POLICY_NOT_FOUND` | 404 | No such policy, or it isn't shared with you |
+| `NOT_POLICY_OWNER` | 403 | Viewers can't edit, delete or share |
+| `INVALID_DATES` | 400 | `expiryDate` must be after `startDate` |
+| `ALREADY_SHARED`, `CANNOT_SHARE_WITH_SELF`, `INVALID_SHARE_TARGET`, `SHARE_LIMIT_REACHED` | 409 / 400 | Sharing errors |
+| `NO_ACCOUNT_FOR_MOBILE`, `SHARE_NOT_FOUND` | 404 | Mobile shares need an existing account; share by email to invite |
+
+Policies are saved only when complete; there are no server-side drafts. Dates are `YYYY-MM-DD`, amounts are rupees, and a policy is `EXPIRED` once `expiryDate` has passed in India time. An email share to someone without an account stays `PENDING` and becomes active once they sign up and open the app.
 
 Passwords must be at least 8 characters with an uppercase letter, a lowercase letter and a number.
 
