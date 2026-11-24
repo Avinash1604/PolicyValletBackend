@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Patch,
@@ -12,6 +13,7 @@ import type { AuthUser } from '../auth/cognito-jwt.guard';
 import { CognitoJwtGuard, CurrentUser } from '../auth/cognito-jwt.guard';
 import {
   ChangePasswordDto,
+  DeleteAccountDto,
   UpdateProfileDto,
   VerifyEmailDto,
 } from './dto/users.dto';
@@ -49,6 +51,19 @@ export class UsersController {
     @Body() dto: ChangePasswordDto,
   ) {
     await this.users.changePassword(user, dto);
+    return { success: true };
+  }
+
+  /**
+   * Permanently deletes the account, its sign-in and all of the user's policies.
+   * Policies others shared with them are just unshared. Requires the current password.
+   */
+  @Delete()
+  async deleteAccount(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: DeleteAccountDto,
+  ) {
+    await this.users.deleteAccount(user, dto.password);
     return { success: true };
   }
 }

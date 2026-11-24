@@ -24,6 +24,7 @@ Swagger docs: `http://localhost:3000/docs`
 | PATCH | `/v1/users/me` | Bearer | fullName / mobile / email (email needs verify-email) |
 | POST | `/v1/users/me/verify-email` | Bearer | code sent to the new email |
 | PATCH | `/v1/users/me/password` | Bearer | currentPassword, newPassword, confirmPassword |
+| DELETE | `/v1/users/me` | Bearer | `password`. Permanently deletes the account, its sign-in and all its policies |
 | POST | `/v1/policies` | Bearer | Create a complete policy (all wizard steps) with `members[]` and optional `shares[]` |
 | GET | `/v1/policies` | Bearer | List; `?scope=all\|owned\|shared&category=HEALTH&state=active\|expired` |
 | GET | `/v1/policies/renewals` | Bearer | Expiring within `?withinDays=` (default 30), soonest first |

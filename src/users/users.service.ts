@@ -77,6 +77,17 @@ export class UsersService {
     );
   }
 
+  /**
+   * Permanently deletes the account after re-checking the password. Cognito goes first:
+   * if it fails, nothing is deleted. The database delete cascades to the user's policies,
+   * their members and every share made by or with the user.
+   */
+  async deleteAccount(user: AuthUser, password: string): Promise<void> {
+    await this.cognito.login(user.email, password);
+    await this.cognito.deleteUser(user.cognitoSub);
+    await this.prisma.user.delete({ where: { id: user.id } });
+  }
+
   private async assertUnused(
     where: { email: string } | { mobile: string },
     selfId: string,

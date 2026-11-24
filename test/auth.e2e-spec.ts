@@ -317,5 +317,61 @@ describe('PolicyValet API (e2e)', () => {
         'NewSecret1',
       );
     });
+
+    it('deletes the account and its policies after checking the password', async () => {
+      const { user, auth } = await registered();
+      await prisma.policy.create({
+        data: {
+          ownerId: user.id,
+          category: 'HEALTH',
+          provider: 'Star Health',
+          policyNumber: 'SH-1',
+          sumInsured: 500000,
+          premiumAmount: 12000,
+          premiumFrequency: 'YEARLY',
+          startDate: new Date('2026-01-01'),
+          expiryDate: new Date('2027-01-01'),
+          members: { create: { fullName: 'Ravi Kumar', relationship: 'SELF' } },
+        },
+      });
+
+      await request(app.getHttpServer())
+        .delete('/v1/users/me')
+        .set('Authorization', auth)
+        .send({ password: 'Secret123' })
+        .expect(200, { success: true });
+
+      expect(cognito.login).toHaveBeenCalledWith(
+        'ravi@example.com',
+        'Secret123',
+      );
+      expect(cognito.deleteUser).toHaveBeenCalledWith(user.cognitoSub);
+      expect(await prisma.user.count()).toBe(0);
+      expect(await prisma.policy.count()).toBe(0);
+      expect(await prisma.policyMember.count()).toBe(0);
+      await request(app.getHttpServer())
+        .get('/v1/users/me')
+        .set('Authorization', auth)
+        .expect(401);
+    });
+
+    it('keeps the account when the password is wrong or missing', async () => {
+      const { auth } = await registered();
+      cognito.login.mockRejectedValueOnce(
+        new UnauthorizedException({ code: 'INVALID_CREDENTIALS' }),
+      );
+      await request(app.getHttpServer())
+        .delete('/v1/users/me')
+        .set('Authorization', auth)
+        .send({ password: 'Wrong123' })
+        .expect(401);
+      await request(app.getHttpServer())
+        .delete('/v1/users/me')
+        .set('Authorization', auth)
+        .send({})
+        .expect(400);
+      expect(cognito.deleteUser).not.toHaveBeenCalled();
+      expect(await prisma.user.count()).toBe(1);
+    });
   });
 });

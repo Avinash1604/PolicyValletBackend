@@ -41,3 +41,10 @@ export class ChangePasswordDto {
   @Match('newPassword', { message: 'Passwords do not match' })
   confirmPassword: string;
 }
+
+export class DeleteAccountDto {
+  /** The current password, to confirm it's really the account owner. */
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+}
