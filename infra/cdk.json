@@ -1,7 +1,7 @@
 {
   "app": "npx ts-node --prefer-ts-exts bin/app.ts",
   "context": {
-    "apiDomain": "",
+    "apiDomain": "api.edifytechsolutions.in",
     "sesFromEmail": "",
     "cognitoUseSes": false,
     "alertEmail": "",
